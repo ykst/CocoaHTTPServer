@@ -539,19 +539,19 @@ static inline NSUInteger WS_PAYLOAD_LENGTH(UInt8 frame)
 	[self sendData:msgData];
 }
 
-- (void)sendData:(NSData *)msgData
+- (void)sendBinary:(NSData *)msgData header:(const char *)hdr
 {
     HTTPLogTrace();
-    
+
     NSMutableData *data = nil;
-	
+
 	if (isRFC6455)
 	{
 		NSUInteger length = msgData.length;
 		if (length <= 125)
 		{
 			data = [NSMutableData dataWithCapacity:(length + 2)];
-			[data appendBytes: "\x81" length:1];
+			[data appendBytes: hdr length:1];
 			UInt8 len = (UInt8)length;
 			[data appendBytes: &len length:1];
 			[data appendData:msgData];
@@ -559,7 +559,9 @@ static inline NSUInteger WS_PAYLOAD_LENGTH(UInt8 frame)
 		else if (length <= 0xFFFF)
 		{
 			data = [NSMutableData dataWithCapacity:(length + 4)];
-			[data appendBytes: "\x81\x7E" length:2];
+			[data appendBytes: hdr length:1];
+			[data appendBytes: "\x7E" length:1];
+
 			UInt16 len = (UInt16)length;
 			[data appendBytes: (UInt8[]){len >> 8, len & 0xFF} length:2];
 			[data appendData:msgData];
@@ -567,7 +569,9 @@ static inline NSUInteger WS_PAYLOAD_LENGTH(UInt8 frame)
 		else
 		{
 			data = [NSMutableData dataWithCapacity:(length + 10)];
-			[data appendBytes: "\x81\x7F" length:2];
+			[data appendBytes: hdr length:1];
+			[data appendBytes: "\x7F" length:1];
+
 			[data appendBytes: (UInt8[]){0, 0, 0, 0, (UInt8)(length >> 24), (UInt8)(length >> 16), (UInt8)(length >> 8), length & 0xFF} length:8];
 			[data appendData:msgData];
 		}
@@ -575,16 +579,27 @@ static inline NSUInteger WS_PAYLOAD_LENGTH(UInt8 frame)
 	else
 	{
 		data = [NSMutableData dataWithCapacity:([msgData length] + 2)];
-        
+
 		[data appendBytes:"\x00" length:1];
 		[data appendData:msgData];
 		[data appendBytes:"\xFF" length:1];
 	}
-	
+
 	// Remember: GCDAsyncSocket is thread-safe
-	
+
 	[asyncSocket writeData:data withTimeout:TIMEOUT_NONE tag:0];
 }
+
+- (void)sendData:(NSData *)msgData
+{
+    [self sendBinary:msgData header:"\x81"];
+}
+
+- (void)sendBuffer:(NSData *)msgData
+{
+    [self sendBinary:msgData header:"\x82"];
+}
+
 
 - (void)didReceiveMessage:(NSString *)msg
 {

@@ -64,8 +64,8 @@
  * Sends a message over the WebSocket.
  * This method is thread-safe.
  **/
-- (void)sendData:(NSData *)msg;
-
+- (void)sendData:(NSData *)msg; // send UTF8
+- (void)sendBuffer:(NSData *)msg; // send ArrayBuffer
 /**
  * Subclass API
  * 

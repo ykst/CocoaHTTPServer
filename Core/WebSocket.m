@@ -786,10 +786,10 @@ static inline NSUInteger WS_PAYLOAD_LENGTH(UInt8 frame)
 			[self didReceiveMessage:msg];
 		}
 		else if (nextOpCode == WS_OP_BINARY_FRAME)
-        {
-            [self didReceiveData:[NSData dataWithData:data]];
-        }
-        else
+		{
+			[self didReceiveData:[NSData dataWithData:data]];
+		}
+		else
 		{
 			[self didClose];
 			return;

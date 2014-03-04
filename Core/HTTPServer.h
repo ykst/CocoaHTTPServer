@@ -198,7 +198,6 @@
 - (BOOL)isRunning;
 
 - (void)addWebSocket:(WebSocket *)ws;
-- (void)iterateWebSockets:(void (^)(id))block;
 
 - (NSUInteger)numberOfHTTPConnections;
 - (NSUInteger)numberOfWebSocketConnections;

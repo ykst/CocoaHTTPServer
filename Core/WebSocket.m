@@ -35,11 +35,12 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_WARN; // | HTTP_LOG_FLAG_TRACE;
 #define WS_OP_CONNECTION_CLOSE     8
 #define WS_OP_PING                 9
 #define WS_OP_PONG                 10
-
-static inline BOOL WS_OP_IS_FINAL_FRAGMENT(UInt8 frame)
+/*
+static inline BOOL  WS_OP_IS_FINAL_FRAGMENT(UInt8 frame) 
 {
 	return (frame & 0x80) ? YES : NO;
 }
+ */
 
 static inline BOOL WS_PAYLOAD_IS_MASKED(UInt8 frame)
 {
@@ -554,7 +555,7 @@ static inline NSUInteger WS_PAYLOAD_LENGTH(UInt8 frame)
 			[data appendBytes: hdr length:1];
 			UInt8 len = (UInt8)length;
 			[data appendBytes: &len length:1];
-			[data appendData:msgData];
+            [data appendData:msgData];
 		}
 		else if (length <= 0xFFFF)
 		{
@@ -564,7 +565,7 @@ static inline NSUInteger WS_PAYLOAD_LENGTH(UInt8 frame)
 
 			UInt16 len = (UInt16)length;
 			[data appendBytes: (UInt8[]){len >> 8, len & 0xFF} length:2];
-			[data appendData:msgData];
+            [data appendData:msgData];
 		}
 		else
 		{
@@ -573,7 +574,8 @@ static inline NSUInteger WS_PAYLOAD_LENGTH(UInt8 frame)
 			[data appendBytes: "\x7F" length:1];
 
 			[data appendBytes: (UInt8[]){0, 0, 0, 0, (UInt8)(length >> 24), (UInt8)(length >> 16), (UInt8)(length >> 8), length & 0xFF} length:8];
-			[data appendData:msgData];
+
+            [data appendData:msgData];
 		}
 	}
 	else
@@ -585,9 +587,66 @@ static inline NSUInteger WS_PAYLOAD_LENGTH(UInt8 frame)
 		[data appendBytes:"\xFF" length:1];
 	}
 
-	// Remember: GCDAsyncSocket is thread-safe
+    // Remember: GCDAsyncSocket is thread-safe
 
-	[asyncSocket writeData:data withTimeout:TIMEOUT_NONE tag:0];
+    [asyncSocket writeData:data withTimeout:TIMEOUT_NONE tag:0];
+}
+
+
+- (void)sendBigBinary:(NSData *)headerData withPayload:(NSData *)payloadData header:(const char *)hdr
+{
+    HTTPLogTrace();
+
+    NSMutableData *data = nil;
+
+	if (isRFC6455)
+	{
+		NSUInteger length = headerData.length + payloadData.length;
+		if (length <= 125)
+		{
+			data = [NSMutableData dataWithCapacity:(length + 2)];
+			[data appendBytes: hdr length:1];
+			UInt8 len = (UInt8)length;
+			[data appendBytes: &len length:1];
+            [data appendData:headerData];
+		}
+		else if (length <= 0xFFFF)
+		{
+			data = [NSMutableData dataWithCapacity:(length + 4)];
+			[data appendBytes: hdr length:1];
+			[data appendBytes: "\x7E" length:1];
+
+			UInt16 len = (UInt16)length;
+			[data appendBytes: (UInt8[]){len >> 8, len & 0xFF} length:2];
+            [data appendData:headerData];
+		}
+		else
+		{
+			data = [NSMutableData dataWithCapacity:(length + 10)];
+			[data appendBytes: hdr length:1];
+			[data appendBytes: "\x7F" length:1];
+
+			[data appendBytes: (UInt8[]){0, 0, 0, 0, (UInt8)(length >> 24), (UInt8)(length >> 16), (UInt8)(length >> 8), length & 0xFF} length:8];
+
+            [data appendData:headerData];
+		}
+
+        [asyncSocket writeData:data withTimeout:TIMEOUT_NONE tag:0];
+        [asyncSocket writeData:payloadData withTimeout:TIMEOUT_NONE tag:0];
+	}
+	else
+	{
+		data = [NSMutableData dataWithCapacity:([headerData length] + [payloadData length] + 2)];
+
+		[data appendBytes:"\x00" length:1];
+		[data appendData:headerData];
+        [data appendData:payloadData];
+		[data appendBytes:"\xFF" length:1];
+
+        // Remember: GCDAsyncSocket is thread-safe
+        
+        [asyncSocket writeData:data withTimeout:TIMEOUT_NONE tag:0];
+	}
 }
 
 - (void)sendData:(NSData *)msgData
@@ -598,6 +657,11 @@ static inline NSUInteger WS_PAYLOAD_LENGTH(UInt8 frame)
 - (void)sendBuffer:(NSData *)msgData
 {
     [self sendBinary:msgData header:"\x82"];
+}
+
+- (void)sendBigBuffer:(NSData *)headerData withPayload:(NSData *)payloadData
+{
+    [self sendBigBinary:headerData withPayload:payloadData header:"\x82"];
 }
 
 

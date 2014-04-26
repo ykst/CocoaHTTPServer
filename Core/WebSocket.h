@@ -66,6 +66,7 @@
  **/
 - (void)sendData:(NSData *)msg; // send UTF8
 - (void)sendBuffer:(NSData *)msg; // send ArrayBuffer
+- (void)sendBigBuffer:(NSData *)header withPayload:(NSData *)payload; // send ArrayBuffer
 /**
  * Subclass API
  * 

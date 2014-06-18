@@ -587,8 +587,6 @@ static inline NSUInteger WS_PAYLOAD_LENGTH(UInt8 frame)
 		[data appendBytes:"\xFF" length:1];
 	}
 
-    // Remember: GCDAsyncSocket is thread-safe
-
     [asyncSocket writeData:data withTimeout:TIMEOUT_NONE tag:0];
 }
 

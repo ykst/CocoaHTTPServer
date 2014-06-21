@@ -615,6 +615,14 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_INFO; // | HTTP_LOG_FLAG_TRACE;
 	}
 }
 
+- (void)forceUnpublishBonjour
+{
+	HTTPLogTrace();
+
+	dispatch_async(serverQueue, ^{
+		[self unpublishBonjour];
+	});
+}
 /**
  * Republishes the service via bonjour if the server is running.
  * If the service was not previously published, this method will publish it (if the server is running).

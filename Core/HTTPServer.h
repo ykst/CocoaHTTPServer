@@ -159,7 +159,7 @@
  * If the service was not previously published, this method will publish it (if the server is running).
 **/
 - (void)republishBonjour;
-
+- (void)forceUnpublishBonjour;
 /**
  * 
 **/
